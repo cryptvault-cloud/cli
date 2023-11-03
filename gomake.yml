@@ -1,0 +1,20 @@
+vars: 
+  a: b
+  b: c
+---
+
+
+cli:_changedir:
+  script: 
+    {{$isInFolder := hasSuffix "/vault/cli" .Env.PWD}}
+    {{if not $isInFolder }} 
+    - cd cli
+    {{end}}
+
+
+cli:tidy: 
+  doc: run go mod tidy for cli project
+  stage: tidy
+  script:
+    {{include "cli:_changedir"}}
+    - go mod tidy
