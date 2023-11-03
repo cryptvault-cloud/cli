@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/cryptvault-cloud/api v0.0.5
-	github.com/cryptvault-cloud/helper v0.0.10
+	github.com/cryptvault-cloud/helper v0.0.11
 	github.com/urfave/cli/v2 v2.25.7
 	go.uber.org/zap v1.26.0
 )
