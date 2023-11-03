@@ -161,11 +161,10 @@ func (r *Runner) LocalSelectVault(c *cli.Context) error {
 		return err
 	}
 	if helper.Includes[string](vaults, func(s string) bool { return s == vaultName }) {
-		r.fileHandler.SaveTextToFile("/currentVault.txt", vaultName)
+		return r.fileHandler.SaveTextToFile("/currentVault.txt", vaultName)
 	} else {
 		return fmt.Errorf("Vault not found... ")
 	}
-	return nil
 }
 
 func (r *Runner) Before(c *cli.Context) error {

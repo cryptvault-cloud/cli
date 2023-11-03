@@ -301,16 +301,15 @@ func (r *ProtectedRunner) AddIdentity(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	r.runner.fileHandler.SaveTextToFile(fmt.Sprintf("%s/identity/%s/key.pub", vaultName, name), b64PubKey)
-	r.runner.fileHandler.SaveTextToFile(fmt.Sprintf("%s/identity/%s/key", vaultName, name), b64PrivKey)
-	r.runner.fileHandler.SaveTextToFile(fmt.Sprintf("%s/identity/%s/id", vaultName, name), res.IdentityId)
+
+	err = errors.Join(r.runner.fileHandler.SaveTextToFile(fmt.Sprintf("%s/identity/%s/key.pub", vaultName, name), b64PubKey), err)
+	err = errors.Join(r.runner.fileHandler.SaveTextToFile(fmt.Sprintf("%s/identity/%s/key", vaultName, name), b64PrivKey), err)
+	err = errors.Join(r.runner.fileHandler.SaveTextToFile(fmt.Sprintf("%s/identity/%s/id", vaultName, name), res.IdentityId), err)
+	if err != nil {
+		return err
+	}
 	fmt.Printf("Identity with id %s created", res.IdentityId)
 	return nil
-}
-
-type rigthHandler interface {
-	GetRightValuePattern() string
-	GetRight() client.Directions
 }
 
 func (r *ProtectedRunner) GetIdentity(c *cli.Context) error {
