@@ -8,32 +8,34 @@ import (
 	"strings"
 
 	client "github.com/cryptvault-cloud/api"
-	"github.com/cryptvault-cloud/cli/logger"
 	"github.com/cryptvault-cloud/helper"
+	"github.com/cryptvault-cloud/vault-cli/logger"
 	"github.com/urfave/cli/v2"
 )
 
 const (
-	CliLogLevel            = "logLevel"
-	CliServerUrl           = "serverUrl"
-	CliSaveToFile          = "should_save_to_file"
-	CliInitVaultName       = "vaultName"
-	CliInitVaultToken      = "vaultToken"
-	CliAuthTokenPrivateKey = "authTokenPrivateKey"
-	CliAuthTokenVaultId    = "authTokenVaultId"
-	CliProtectedHandlerKey = "handlerkey"
-	CliProtectedVaultId    = "vaultid"
-	CliAddValueName        = "name"
-	CliAddIdentityName     = "name"
-	CliAddIdentityRights   = "rights"
-	CliGetIdentityId       = "id"
-	CliGetValueName        = "name"
-	CliAddValuePassframe   = "passframe"
-	CliAddValueType        = "type"
-	CliSaveFilePath        = "save_file_path"
-	CliDeleteIdentityId    = "id"
-	CliDeleteValueName     = "name"
-	App                    = "VAULT_CLI"
+	CliLogLevel              = "logLevel"
+	CliServerUrl             = "serverUrl"
+	CliSaveToFile            = "should_save_to_file"
+	CliInitVaultId           = "vaultId"
+	CliInitVaultName         = "vaultName"
+	CliCreateVaultVaultName  = "vaultName"
+	CliCreateVaultVaultToken = "vaultToken"
+	CliAuthTokenPrivateKey   = "authTokenPrivateKey"
+	CliAuthTokenVaultId      = "authTokenVaultId"
+	CliProtectedHandlerKey   = "handlerkey"
+	CliProtectedVaultId      = "vaultid"
+	CliAddValueName          = "name"
+	CliAddIdentityName       = "name"
+	CliAddIdentityRights     = "rights"
+	CliGetIdentityId         = "id"
+	CliGetValueName          = "name"
+	CliAddValuePassframe     = "passframe"
+	CliAddValueType          = "type"
+	CliSaveFilePath          = "save_file_path"
+	CliDeleteIdentityId      = "id"
+	CliDeleteValueName       = "name"
+	App                      = "VAULT_CLI"
 )
 
 func getFlagEnvByFlagName(flagName string) string {
@@ -103,9 +105,9 @@ func main() {
 				},
 			},
 			{
-				Name:   "create_vault",
-				Usage:  "Create a new Vault",
-				Action: runner.create_vault,
+				Name:   "init",
+				Usage:  "create a local workspace for an already exist Vault",
+				Action: runner.init_vault,
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:     CliInitVaultName,
@@ -114,7 +116,26 @@ func main() {
 						Usage:    "Name of the new Vault to init",
 					},
 					&cli.StringFlag{
-						Name:     CliInitVaultToken,
+						Name:     CliInitVaultId,
+						Aliases:  []string{"id"},
+						Required: true,
+						Usage:    "Id of the vault",
+					},
+				},
+			},
+			{
+				Name:   "create_vault",
+				Usage:  "Create a new Vault",
+				Action: runner.create_vault,
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     CliCreateVaultVaultName,
+						Aliases:  []string{"vault-name"},
+						Required: true,
+						Usage:    "Name of the new Vault to init",
+					},
+					&cli.StringFlag{
+						Name:     CliCreateVaultVaultToken,
 						Aliases:  []string{"token"},
 						Required: true,
 						Usage:    "Token to verify vault generation is allowed",
@@ -186,9 +207,24 @@ func (r *Runner) Before(c *cli.Context) error {
 	return err
 }
 
-func (r *Runner) create_vault(c *cli.Context) error {
+func (r *Runner) init_vault(c *cli.Context) error {
 	vaultName := c.String(CliInitVaultName)
-	privKey, pubKey, vaultID, err := r.api.NewVault(vaultName, c.String(CliInitVaultToken))
+	vaultID := c.String(CliInitVaultId)
+	var err error = nil
+	err = errors.Join(r.fileHandler.SaveTextToFile("/currentVault.txt", vaultName), err)
+	err = errors.Join(r.fileHandler.SaveTextToFile(fmt.Sprintf("%s/vaultId", vaultName), vaultID), err)
+	if err != nil {
+		return err
+
+	}
+
+	fmt.Println("Created folder Structure")
+	return nil
+}
+
+func (r *Runner) create_vault(c *cli.Context) error {
+	vaultName := c.String(CliCreateVaultVaultName)
+	privKey, pubKey, vaultID, err := r.api.NewVault(vaultName, c.String(CliCreateVaultVaultToken))
 	if err != nil {
 		return err
 	}

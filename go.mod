@@ -1,4 +1,4 @@
-module github.com/cryptvault-cloud/cli
+module github.com/cryptvault-cloud/vault-cli
 
 go 1.20
 
