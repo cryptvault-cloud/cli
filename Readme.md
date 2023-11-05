@@ -27,7 +27,7 @@ GLOBAL OPTIONS:
    --help, -h              show help
 
 ```
-**Local commands: **
+**Local commands:**
 ```
 NAME:
    vault-cli local - To handle with local files
