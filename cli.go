@@ -81,6 +81,25 @@ func main() {
 				Usage: "To handle with local files",
 				Subcommands: []*cli.Command{
 					{
+						Name:   "init",
+						Usage:  "create a local workspace for an already exist Vault",
+						Action: runner.init_vault,
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:     CliInitVaultName,
+								Aliases:  []string{"vault-name"},
+								Required: true,
+								Usage:    "Name of the new Vault to init",
+							},
+							&cli.StringFlag{
+								Name:     CliInitVaultId,
+								Aliases:  []string{"id"},
+								Required: true,
+								Usage:    "Id of the vault",
+							},
+						},
+					},
+					{
 						Name:   "list-vault",
 						Usage:  "All local available Vaults",
 						Action: runner.LocalListVault,
@@ -101,25 +120,6 @@ func main() {
 								Required: true,
 							},
 						},
-					},
-				},
-			},
-			{
-				Name:   "init",
-				Usage:  "create a local workspace for an already exist Vault",
-				Action: runner.init_vault,
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:     CliInitVaultName,
-						Aliases:  []string{"vault-name"},
-						Required: true,
-						Usage:    "Name of the new Vault to init",
-					},
-					&cli.StringFlag{
-						Name:     CliInitVaultId,
-						Aliases:  []string{"id"},
-						Required: true,
-						Usage:    "Id of the vault",
 					},
 				},
 			},
