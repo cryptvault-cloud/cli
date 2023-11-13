@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -226,6 +227,7 @@ func (r *Runner) create_vault(c *cli.Context) error {
 	vaultName := c.String(CliCreateVaultVaultName)
 	privKey, pubKey, vaultID, err := r.api.NewVault(vaultName, c.String(CliCreateVaultVaultToken))
 	if err != nil {
+		log.Println("hier", r.api)
 		return err
 	}
 

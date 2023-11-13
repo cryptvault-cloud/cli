@@ -33,7 +33,7 @@ var AllValueType = []ValueType{
 
 var ValuePatternRegex *regexp.Regexp
 
-const ValuePatternRegexStr = `^\((?P<directions>(r|w|d)+)\)(?P<target>(VALUES|IDENTITY|SYSTEM))(?P<pattern>(\.[a-z0-9_\->\*]+)+)$`
+const ValuePatternRegexStr = `^\((?P<directions>(r|w|d)+)\)(?P<target>(VALUES|IDENTITY|SYSTEM))(?P<pattern>(\.([\w\-]+|[>\*]{1}))+)$`
 
 func init() {
 	ValuePatternRegex = regexp.MustCompile(ValuePatternRegexStr)
