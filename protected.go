@@ -457,10 +457,7 @@ func (r *ProtectedRunner) UpdateIdentity(c *cli.Context) error {
 				return fmt.Errorf("Right to remove %s was not found at current identity rights", fmt.Sprintf("(%s)%s", r.Right[:1], r.RightValuePattern))
 			} else {
 				currentRights = helper.Filter(currentRights, func(value *client.RightInput) bool {
-					if fmt.Sprintf("(%s)%s", value.Right[:1], value.RightValuePattern) == fmt.Sprintf("(%s)%s", r.Right[:1], r.RightValuePattern) {
-						return false
-					}
-					return true
+					return fmt.Sprintf("(%s)%s", value.Right[:1], value.RightValuePattern) != fmt.Sprintf("(%s)%s", r.Right[:1], r.RightValuePattern)
 				})
 			}
 		}
