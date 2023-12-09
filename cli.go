@@ -6,37 +6,50 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 
 	client "github.com/cryptvault-cloud/api"
 	"github.com/cryptvault-cloud/helper"
 	"github.com/cryptvault-cloud/vault-cli/logger"
 	"github.com/urfave/cli/v2"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 const (
-	CliLogLevel              = "logLevel"
-	CliServerUrl             = "serverUrl"
-	CliSaveToFile            = "should_save_to_file"
-	CliInitVaultId           = "vaultId"
-	CliInitVaultName         = "vaultName"
-	CliCreateVaultVaultName  = "vaultName"
-	CliCreateVaultVaultToken = "vaultToken"
-	CliAuthTokenPrivateKey   = "authTokenPrivateKey"
-	CliAuthTokenVaultId      = "authTokenVaultId"
-	CliProtectedHandlerKey   = "handlerkey"
-	CliProtectedVaultId      = "vaultid"
-	CliAddValueName          = "name"
-	CliAddIdentityName       = "name"
-	CliAddIdentityRights     = "rights"
-	CliGetIdentityId         = "id"
-	CliGetValueName          = "name"
-	CliAddValuePassframe     = "passframe"
-	CliAddValueType          = "type"
-	CliSaveFilePath          = "save_file_path"
-	CliDeleteIdentityId      = "id"
-	CliDeleteValueName       = "name"
-	App                      = "VAULT_CLI"
+	CliLogLevel                   = "logLevel"
+	CliServerUrl                  = "serverUrl"
+	CliSaveToFile                 = "should_save_to_file"
+	CliInitVaultId                = "vaultId"
+	CliInitVaultName              = "vaultName"
+	CliCreateVaultVaultName       = "vaultName"
+	CliCreateVaultVaultToken      = "vaultToken"
+	CliAuthTokenPrivateKey        = "authTokenPrivateKey"
+	CliAuthTokenVaultId           = "authTokenVaultId"
+	CliProtectedHandlerKey        = "handlerkey"
+	CliProtectedVaultId           = "vaultid"
+	CliAddValueName               = "name"
+	CliUpdateValueName            = "name"
+	CliAddIdentityName            = "name"
+	CliUpdateIdentityName         = "name"
+	CliUpdateIdentityId           = "id"
+	CliAddIdentityRights          = "rights"
+	CliUpdateIdentityRightsAdd    = "rights-add"
+	CliUpdateIdentityRightsRemove = "rights-remove"
+
+	CliGetIdentityId              = "id"
+	CliGetValueName               = "name"
+	CliAddValuePassframe          = "passframe"
+	CliUpdateValuePassframe       = "passframe"
+	CliAddValueType               = "type"
+	CliUpdateValueType            = "type"
+	CliSaveFilePath               = "save_file_path"
+	CliDeleteIdentityId           = "id"
+	CliDeleteValueName            = "name"
+	CliAddIdentityLocalPrivateKey = "private_key"
+	CliAddIdentityLocalName       = "name"
+
+	App = "VAULT_CLI"
 )
 
 func getFlagEnvByFlagName(flagName string) string {
@@ -44,6 +57,7 @@ func getFlagEnvByFlagName(flagName string) string {
 }
 
 func main() {
+
 	runner := Runner{}
 
 	app := &cli.App{
@@ -101,6 +115,25 @@ func main() {
 						},
 					},
 					{
+						Name:        "add-identity",
+						Usage:       "add a identity local to the file structure. ",
+						Description: "Useful if an identity was create by some one else, but you will use it.",
+						Action:      runner.add_identity,
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:     CliAddIdentityLocalPrivateKey,
+								Aliases:  []string{"key"},
+								Required: true,
+								Usage:    "Private Key of identity",
+							},
+							&cli.StringFlag{
+								Name:  CliAddIdentityLocalName,
+								Usage: "Name of identity if not set it will try query from cryptvault (require min right (r)IDENTITY.>)",
+								Value: "",
+							},
+						},
+					},
+					{
 						Name:   "list-vault",
 						Usage:  "All local available Vaults",
 						Action: runner.LocalListVault,
@@ -131,12 +164,14 @@ func main() {
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:     CliCreateVaultVaultName,
+						EnvVars:  []string{getFlagEnvByFlagName(CliCreateVaultVaultName)},
 						Aliases:  []string{"vault-name"},
 						Required: true,
 						Usage:    "Name of the new Vault to init",
 					},
 					&cli.StringFlag{
 						Name:     CliCreateVaultVaultToken,
+						EnvVars:  []string{getFlagEnvByFlagName(CliCreateVaultVaultToken)},
 						Aliases:  []string{"token"},
 						Required: true,
 						Usage:    "Token to verify vault generation is allowed",
@@ -147,7 +182,21 @@ func main() {
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
-		logger.Get().Panicw("Application start failed", "error", err)
+		if gqlErr, ok := err.(gqlerror.List); ok {
+			for i, err := range gqlErr {
+				fmt.Printf("Error %d:\n", i+1)
+				fmt.Printf("Message: %s \n", err.Message)
+				fmt.Print("Details: \n")
+				for k, v := range err.Extensions {
+					if v == "" {
+						v = "-"
+					}
+					fmt.Printf("\t%s:  %s\n", k, v)
+				}
+			}
+		} else {
+			fmt.Println("Error:", err)
+		}
 	}
 }
 
@@ -223,6 +272,45 @@ func (r *Runner) init_vault(c *cli.Context) error {
 	return nil
 }
 
+func (r *Runner) add_identity(c *cli.Context) error {
+	private_key_str := c.String(CliAddIdentityLocalPrivateKey)
+	name := c.String(CliAddIdentityLocalName)
+	key, err := helper.GetPrivateKeyFromB64String(private_key_str)
+	if err != nil {
+		return err
+	}
+	vaultName, err := r.fileHandler.SelectedVault()
+	if err != nil {
+		return err
+	}
+	vaultId, err := r.fileHandler.ReadTextFile(fmt.Sprintf("%s/vaultId", vaultName))
+	if err != nil {
+		return err
+	}
+	b64PubKey, err := helper.NewBase64PublicPem(&key.PublicKey)
+	if err != nil {
+		return err
+	}
+	identityId, err := b64PubKey.GetIdentityId(vaultId)
+	if err != nil {
+		return err
+	}
+	if name == "" {
+		serverIdentity, err := r.api.GetProtectedApi(key, vaultId).GetIdentity(identityId)
+		if err != nil {
+			return err
+		}
+		name = *serverIdentity.Name
+	}
+	err = errors.Join(r.fileHandler.SaveTextToFile(fmt.Sprintf("%s/identity/%s/key.pub", vaultName, name), string(b64PubKey)), err)
+	err = errors.Join(r.fileHandler.SaveTextToFile(fmt.Sprintf("%s/identity/%s/key", vaultName, name), private_key_str), err)
+	err = errors.Join(r.fileHandler.SaveTextToFile(fmt.Sprintf("%s/identity/%s/id", vaultName, name), identityId), err)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (r *Runner) create_vault(c *cli.Context) error {
 	vaultName := c.String(CliCreateVaultVaultName)
 	privKey, pubKey, vaultID, err := r.api.NewVault(vaultName, c.String(CliCreateVaultVaultToken))
@@ -239,9 +327,10 @@ func (r *Runner) create_vault(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("VaultId:\t%s\n", vaultID)
-	fmt.Printf("Private Key:\n%s\n", b64PrivKey)
-	fmt.Printf("Public Key:\n%s\n", b64PubKey)
+	fmt.Printf("Vault with id:\t%s was created\n", vaultID)
+	fmt.Printf("Folder %s was created\n", path.Join(c.String(CliSaveFilePath), vaultName))
+	fmt.Printf("Operator identity was saved at %s\n", path.Join(c.String(CliSaveFilePath), vaultName, "operator"))
+	fmt.Printf("Current selected Vault is set to %s", vaultName)
 
 	err = errors.Join(r.fileHandler.SaveTextToFile("/currentVault.txt", vaultName), err)
 	err = errors.Join(r.fileHandler.SaveTextToFile(fmt.Sprintf("%s/vaultId", vaultName), vaultID), err)

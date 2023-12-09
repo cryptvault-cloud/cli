@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"regexp"
+	"strings"
 
 	client "github.com/cryptvault-cloud/api"
 	"github.com/cryptvault-cloud/helper"
@@ -152,6 +154,102 @@ func GetProtectedCommand(runner *Runner) *cli.Command {
 				},
 			},
 			{
+				Name:    "ls",
+				Aliases: []string{"list"},
+				Usage:   "List multiple information creds identity",
+				Subcommands: []*cli.Command{
+					{
+						Name:   "values",
+						Usage:  "show all keys of all related values",
+						Action: pRunner.ListRelatedValues,
+					},
+					{
+						Name:   "identities",
+						Usage:  "show all identities",
+						Action: pRunner.ListAllIdentities,
+					},
+				},
+			},
+			{
+				Name:  "update",
+				Usage: "Update Secrets, Identities",
+				Subcommands: []*cli.Command{
+					{
+						Name:   "value",
+						Usage:  "update a value and set new secret",
+						Action: pRunner.UpdateValue,
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:     CliUpdateValueName,
+								EnvVars:  []string{getFlagEnvByFlagName(CliUpdateValueName)},
+								Usage:    "Key of value",
+								Required: true,
+							},
+							&cli.StringFlag{
+								Name:     CliUpdateValuePassframe,
+								EnvVars:  []string{getFlagEnvByFlagName(CliUpdateValuePassframe)},
+								Usage:    "Password of value",
+								Required: true,
+							},
+							&cli.StringFlag{
+								Name:    CliUpdateValueType,
+								EnvVars: []string{getFlagEnvByFlagName(CliUpdateValueType)},
+								Usage:   "type of value String or JSON",
+								Value:   "String",
+							},
+						},
+					},
+					{
+						Name:   "identity",
+						Usage:  "update a identity",
+						Action: pRunner.UpdateIdentity,
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:     CliUpdateIdentityId,
+								EnvVars:  []string{getFlagEnvByFlagName(CliUpdateIdentityId)},
+								Usage:    "id of identity",
+								Required: true,
+							},
+							&cli.StringFlag{
+								Name:    CliUpdateIdentityName,
+								EnvVars: []string{getFlagEnvByFlagName(CliUpdateIdentityName)},
+								Usage:   "Name of identity",
+							},
+							&cli.StringSliceFlag{
+								Name:    CliUpdateIdentityRightsAdd,
+								Aliases: []string{"ra"},
+								EnvVars: []string{getFlagEnvByFlagName(CliUpdateIdentityRightsAdd)},
+								Usage:   "Rights for the identity to add",
+								Action: func(ctx *cli.Context, s []string) error {
+									var err error = nil
+									for _, one := range s {
+										if !ValuePatternRegex.Match([]byte(one)) {
+											err = errors.Join(fmt.Errorf("Have to match right string pattern: %s", ValuePatternRegexStr))
+										}
+									}
+									return err
+								},
+							},
+							&cli.StringSliceFlag{
+								Name:    CliUpdateIdentityRightsRemove,
+								Aliases: []string{"rd"},
+								EnvVars: []string{getFlagEnvByFlagName(CliUpdateIdentityRightsRemove)},
+								Usage:   "Rights for the identity to remove",
+								Action: func(ctx *cli.Context, s []string) error {
+									var err error = nil
+									for _, one := range s {
+										if !ValuePatternRegex.Match([]byte(one)) {
+											err = errors.Join(fmt.Errorf("Have to match right string pattern: %s", ValuePatternRegexStr))
+										}
+									}
+									return err
+								},
+							},
+						},
+					},
+				},
+			},
+			{
 				Name:  "delete",
 				Usage: "Get Secrets, Identity",
 				Subcommands: []*cli.Command{
@@ -231,17 +329,73 @@ func (r *ProtectedRunner) Before(c *cli.Context) error {
 	r.api = r.runner.api.GetProtectedApi(privKey, vaultId)
 	return nil
 }
+func (r *ProtectedRunner) ListAllIdentities(c *cli.Context) error {
+	identityResult, err := r.api.GetAllIdentities()
+	if err != nil {
+		return err
+	}
+	identities := identityResult.QueryIdentity.Data
+	for _, identity := range identities {
+		fmt.Printf("%s\n", *identity.Name)
+		for _, right := range identity.Rights {
+			fmt.Printf("\t(%s)%s\n", right.Right[:1], right.RightValuePattern)
+		}
+	}
+	return nil
+}
 
+func (r *ProtectedRunner) ListRelatedValues(c *cli.Context) error {
+	b64pub, err := helper.NewBase64PublicPem(&r.privateKey.PublicKey)
+	if err != nil {
+		return err
+	}
+	identityId, err := b64pub.GetIdentityId(*r.vaultId)
+	if err != nil {
+		return err
+	}
+	values, err := r.api.GetAllRelatedValues(identityId)
+	if err != nil {
+		return err
+	}
+	if len(values) == 0 {
+		fmt.Println("No Values related for this identity")
+	} else {
+		fmt.Println("Related valuekeys:")
+		for _, v := range values {
+			fmt.Println(v.Name)
+		}
+	}
+	return nil
+}
 func (r *ProtectedRunner) AddValue(c *cli.Context) error {
 	valueType := c.String(CliAddValueType)
 	if !helper.Includes(AllValueType, func(v ValueType) bool { return valueType == string(v) }) {
 		return fmt.Errorf("not allowed Type")
 	}
-	id, err := r.api.AddValue(c.String(CliAddValueName), c.String(CliAddValuePassframe), client.ValueType(valueType))
+	_, err := r.api.AddValue(c.String(CliAddValueName), c.String(CliAddValuePassframe), client.ValueType(valueType))
 	if err != nil {
 		return err
 	}
-	fmt.Printf("ValueID = %s \n", id)
+
+	fmt.Printf("Value %s was created \n", c.String(CliAddValueName))
+	return nil
+}
+
+func (r *ProtectedRunner) UpdateValue(c *cli.Context) error {
+	valueType := c.String(CliAddValueType)
+	if !helper.Includes(AllValueType, func(v ValueType) bool { return valueType == string(v) }) {
+		return fmt.Errorf("not allowed Type")
+	}
+	value, err := r.api.GetValueByName(c.String(CliUpdateValueName))
+	if err != nil {
+		return err
+	}
+
+	_, err = r.api.UpdateValue(value.Id, value.Name, c.String(CliUpdateValuePassframe), client.ValueType(c.String(CliUpdateValueType)))
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%s was updated\n", value.Name)
 	return nil
 }
 
@@ -265,6 +419,106 @@ func getRightInputs(rights []string) ([]*client.RightInput, error) {
 	return rightInputs, errs
 }
 
+func (r *ProtectedRunner) UpdateIdentity(c *cli.Context) error {
+	rightsAdd := c.StringSlice(CliUpdateIdentityRightsAdd)
+	rightsRemove := c.StringSlice(CliUpdateIdentityRightsRemove)
+	name := c.String(CliUpdateIdentityName)
+	id := c.String(CliUpdateIdentityId)
+	identity, err := r.api.GetIdentity(id)
+	if err != nil {
+		return err
+	}
+
+	rightStr := make([]string, 0, len(identity.Rights))
+	for _, r := range identity.Rights {
+
+		rightStr = append(rightStr, fmt.Sprintf("(%s)%s", r.Right[:1], r.RightValuePattern))
+	}
+	currentRights, err := getRightInputs(rightStr)
+	if err != nil {
+		return err
+	}
+
+	if name != "" {
+		identity.Name = &name
+	}
+
+	if len(rightsRemove) > 0 {
+		removeRights, err := getRightInputs(rightsRemove)
+		if err != nil {
+			return err
+		}
+		for _, r := range removeRights {
+			r := r
+			containsRight := helper.Contains(currentRights, r, func(value, toCheck *client.RightInput) bool {
+				return fmt.Sprintf("(%s)%s", value.Right[:1], value.RightValuePattern) == fmt.Sprintf("(%s)%s", toCheck.Right[:1], toCheck.RightValuePattern)
+			})
+			if !containsRight {
+				return fmt.Errorf("Right to remove %s was not found at current identity rights", fmt.Sprintf("(%s)%s", r.Right[:1], r.RightValuePattern))
+			} else {
+				currentRights = helper.Filter(currentRights, func(value *client.RightInput) bool {
+					if fmt.Sprintf("(%s)%s", value.Right[:1], value.RightValuePattern) == fmt.Sprintf("(%s)%s", r.Right[:1], r.RightValuePattern) {
+						return false
+					}
+					return true
+				})
+			}
+		}
+	}
+	if len(rightsAdd) > 0 {
+		addRights, err := getRightInputs(rightsAdd)
+		if err != nil {
+			return err
+		}
+		for _, r := range addRights {
+			r := r
+			containsRight := helper.Contains(currentRights, r, func(value, toCheck *client.RightInput) bool {
+				return fmt.Sprintf("(%s)%s", value.Right, value.RightValuePattern) == fmt.Sprintf("(%s)%s", toCheck.Right, toCheck.RightValuePattern)
+			})
+			if !containsRight {
+				currentRights = append(currentRights, r)
+			}
+		}
+	}
+
+	oldValues, err := r.api.GetAllRelatedValuesWithIdentityValues(id)
+	if err != nil {
+		return err
+	}
+	var errorList error = nil
+	for _, v := range oldValues {
+		for _, vv := range v.Value {
+			if vv.IdentityID == id {
+				_, err := r.api.DeleteIdentityValue(&vv.Id)
+				errorList = errors.Join(errorList, err)
+			}
+		}
+
+	}
+	if errorList != nil {
+		return errorList
+	}
+
+	_, err = r.api.UpdateIdentity(id, *identity.Name, currentRights)
+	if err != nil {
+		return err
+	}
+
+	values, err := r.api.GetAllRelatedValues(id)
+	if err != nil {
+		return err
+	}
+	for _, v := range values {
+		err := r.api.SyncValue(v.Id)
+		if err != nil {
+			return err
+		}
+	}
+
+	fmt.Printf("Identity updated\n")
+	return nil
+}
+
 func (r *ProtectedRunner) AddIdentity(c *cli.Context) error {
 	rights := c.StringSlice(CliAddIdentityRights)
 	name := c.String(CliAddIdentityName)
@@ -283,7 +537,7 @@ func (r *ProtectedRunner) AddIdentity(c *cli.Context) error {
 		return err
 	}
 	for _, v := range values {
-		err := r.api.SyncValue(v)
+		err := r.api.SyncValue(v.Id)
 		if err != nil {
 			return err
 		}
@@ -308,7 +562,8 @@ func (r *ProtectedRunner) AddIdentity(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Identity with id %s created", res.IdentityId)
+	fmt.Print("Identity was created \n")
+	fmt.Printf("Identity information was saved at %s\n", path.Join(c.String(CliSaveFilePath), vaultName, "identity", name))
 	return nil
 }
 
@@ -322,10 +577,10 @@ func (r *ProtectedRunner) GetIdentity(c *cli.Context) error {
 	rigthstr := make([]string, len(res.Rights))
 
 	for i, v := range res.Rights {
-		rigthstr[i] = fmt.Sprintf("(%s)%s", v.Right, v.RightValuePattern)
+		rigthstr[i] = fmt.Sprintf("(%s)%s", v.Right[:1], v.RightValuePattern)
 	}
 
-	fmt.Printf("ID: %s\nName: %s\nRights: %s\n", res.Id, *res.Name, rigthstr)
+	fmt.Printf("ID: %s\nName: %s\nRights: \n\t%s\n", res.Id, *res.Name, strings.Join(rigthstr, "\n\t"))
 	return nil
 }
 
