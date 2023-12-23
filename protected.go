@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/ecdsa"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"os"
@@ -575,7 +574,7 @@ func (r *ProtectedRunner) AddIdentity(c *cli.Context) error {
 	} else {
 
 		// add identity by given public key
-		pubKey, err := GetPublicKeyFromB64String(b64pubKey)
+		pubKey, err := helper.GetPublicKeyFromB64String(b64pubKey)
 		if err != nil {
 			return err
 		}
@@ -588,15 +587,6 @@ func (r *ProtectedRunner) AddIdentity(c *cli.Context) error {
 		return nil
 	}
 
-}
-
-func GetPublicKeyFromB64String(key string) (*ecdsa.PublicKey, error) {
-	publicKeyPem, err := base64.StdEncoding.DecodeString(key)
-	if err != nil {
-		return nil, err
-	}
-
-	return helper.DecodePublicKey(string(publicKeyPem))
 }
 
 func (r *ProtectedRunner) GetIdentity(c *cli.Context) error {

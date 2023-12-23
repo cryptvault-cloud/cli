@@ -5,8 +5,8 @@ github.com/cpuguy83/go-md2man/v2 v2.0.2 h1:p1EgwI/C7NhT0JmVkwCD2ZBK8j4aeHQX2pMHH
 github.com/cpuguy83/go-md2man/v2 v2.0.2/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/cryptvault-cloud/api v0.0.9 h1:nCY4RdQbTmPX/AYiapaaT3bb4EByP/bCGbn/kktmX7o=
 github.com/cryptvault-cloud/api v0.0.9/go.mod h1:ocKSg4tZk8SFcRlQyQhxBImRER1Ix6PQWNWh1jCZ1g0=
-github.com/cryptvault-cloud/helper v0.0.13 h1:ljdbcM0A83yx02zuqsBc23Vr161j+ni0VdOjwCnRNNA=
-github.com/cryptvault-cloud/helper v0.0.13/go.mod h1:HD3igDv0SkcgChPfp5THWFh2jWn/FnabeCa7KR7ewjU=
+github.com/cryptvault-cloud/helper v0.1.0 h1:xe5OjxyOpiQXvQVyWxRKubEpAXRPOyBWxMO3dTQmoZw=
+github.com/cryptvault-cloud/helper v0.1.0/go.mod h1:HD3igDv0SkcgChPfp5THWFh2jWn/FnabeCa7KR7ewjU=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/russross/blackfriday/v2 v2.1.0 h1:JIOH55/0cWyOuilr9/qlrm0BSXldqnqwMsf35Ld67mk=
