@@ -14,9 +14,14 @@ type FileHandling interface {
 	AvailableVaults() ([]string, error)
 	SelectedVault() (string, error)
 	DeleteFolder(filePath string) error
+	FullPath(filePath string) string
 }
 
 type FileHandlerMock struct {
+}
+
+func (f *FileHandlerMock) FullPath(filePath string) string {
+	return filePath
 }
 
 func (f *FileHandlerMock) Init() error {
@@ -56,7 +61,7 @@ func (f *FileHandler) Init() error {
 	}
 }
 
-func (f *FileHandler) fullPath(filePath string) string {
+func (f *FileHandler) FullPath(filePath string) string {
 	if strings.Contains(path.Clean(filePath), path.Clean(f.RootPath)) {
 		return filePath
 	}
@@ -64,11 +69,11 @@ func (f *FileHandler) fullPath(filePath string) string {
 }
 
 func (f *FileHandler) DeleteFolder(filePath string) error {
-	return os.RemoveAll(f.fullPath(filePath))
+	return os.RemoveAll(f.FullPath(filePath))
 }
 
 func (f *FileHandler) SaveTextToFile(filePath string, content string) error {
-	p := f.fullPath(filePath)
+	p := f.FullPath(filePath)
 	folders := path.Dir(p)
 	err := os.MkdirAll(folders, 0700)
 	if err != nil {
@@ -78,7 +83,7 @@ func (f *FileHandler) SaveTextToFile(filePath string, content string) error {
 }
 
 func (f *FileHandler) ReadTextFile(filePath string) (string, error) {
-	res, err := os.ReadFile(f.fullPath(filePath))
+	res, err := os.ReadFile(f.FullPath(filePath))
 	if err != nil {
 		return "", err
 	}

@@ -31,6 +31,7 @@ const (
 	CliAddValueName               = "name"
 	CliUpdateValueName            = "name"
 	CliAddIdentityName            = "name"
+	CliAddIdentityPublicKey       = "public_key"
 	CliUpdateIdentityName         = "name"
 	CliUpdateIdentityId           = "id"
 	CliAddIdentityRights          = "rights"
@@ -48,6 +49,7 @@ const (
 	CliDeleteValueName            = "name"
 	CliAddIdentityLocalPrivateKey = "private_key"
 	CliAddIdentityLocalName       = "name"
+	CliCreateIdentityLocalName    = "name"
 
 	App = "VAULT_CLI"
 )
@@ -63,7 +65,6 @@ func main() {
 	app := &cli.App{
 		Usage: "vault-cli",
 		Flags: []cli.Flag{
-
 			&cli.StringFlag{
 				Name:    CliLogLevel,
 				EnvVars: []string{getFlagEnvByFlagName(CliLogLevel)},
@@ -114,22 +115,48 @@ func main() {
 							},
 						},
 					},
+
 					{
-						Name:        "add-identity",
-						Usage:       "add a identity local to the file structure. ",
-						Description: "Useful if an identity was create by some one else, but you will use it.",
-						Action:      runner.add_identity,
-						Flags: []cli.Flag{
-							&cli.StringFlag{
-								Name:     CliAddIdentityLocalPrivateKey,
-								Aliases:  []string{"key"},
-								Required: true,
-								Usage:    "Private Key of identity",
+						Name: "add",
+						Subcommands: []*cli.Command{
+							{
+								Name:        "identity-by-private-key",
+								Usage:       "add a identity local to the file structure. ",
+								Description: "Useful if an identity was create by some one else, but you will use it.",
+								Action:      runner.add_identity,
+								Flags: []cli.Flag{
+									&cli.StringFlag{
+										Name:     CliAddIdentityLocalPrivateKey,
+										Aliases:  []string{"key"},
+										Required: true,
+										Usage:    "Private Key of identity",
+									},
+									&cli.StringFlag{
+										Name:  CliAddIdentityLocalName,
+										Usage: "Name of identity if not set it will try query from cryptvault (require min right (r)IDENTITY.>)",
+										Value: "",
+									},
+								},
 							},
-							&cli.StringFlag{
-								Name:  CliAddIdentityLocalName,
-								Usage: "Name of identity if not set it will try query from cryptvault (require min right (r)IDENTITY.>)",
-								Value: "",
+						},
+					},
+					{
+						Name: "create",
+						Subcommands: []*cli.Command{
+							{
+								Name:        "identity",
+								Usage:       "create a new identity key pair without register at vault.cloud. ",
+								Description: "Useful if your identity will register by an other team so you can send them you public key.",
+								Action:      runner.create_local_identity,
+								Flags: []cli.Flag{
+									&cli.StringFlag{
+										Name:     CliCreateIdentityLocalName,
+										EnvVars:  []string{getFlagEnvByFlagName(CliCreateIdentityLocalName)},
+										Usage:    "Name of identity ",
+										Value:    "",
+										Required: true,
+									},
+								},
 							},
 						},
 					},
@@ -270,6 +297,45 @@ func (r *Runner) init_vault(c *cli.Context) error {
 
 	fmt.Println("Created folder Structure")
 	return nil
+}
+
+func (r *Runner) create_local_identity(c *cli.Context) error {
+	name := c.String(CliCreateIdentityLocalName)
+	privKey, pubKey, err := r.api.GetNewIdentityKeyPair()
+	if err != nil {
+		return err
+	}
+	vaultName, err := r.fileHandler.SelectedVault()
+	if err != nil {
+		return err
+	}
+	vaultId, err := r.fileHandler.ReadTextFile(fmt.Sprintf("%s/vaultId", vaultName))
+	if err != nil {
+		return err
+	}
+	b64PubKey, err := helper.NewBase64PublicPem(pubKey)
+	if err != nil {
+		return err
+	}
+	identityId, err := b64PubKey.GetIdentityId(vaultId)
+	if err != nil {
+		return err
+	}
+	b64PrivKey, err := helper.GetB64FromPrivateKey(privKey)
+	if err != nil {
+		return err
+	}
+
+	err = errors.Join(r.fileHandler.SaveTextToFile(fmt.Sprintf("%s/identity/%s/key.pub", vaultName, name), string(b64PubKey)), err)
+	err = errors.Join(r.fileHandler.SaveTextToFile(fmt.Sprintf("%s/identity/%s/key", vaultName, name), b64PrivKey), err)
+	err = errors.Join(r.fileHandler.SaveTextToFile(fmt.Sprintf("%s/identity/%s/id", vaultName, name), identityId), err)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("New Local identity created at %s\n", r.fileHandler.FullPath(fmt.Sprintf("%s/identity/%s", vaultName, name)))
+	fmt.Printf("Your public key to share with someone who can add you to the cryptvault.cloud:\n\n%s\n", b64PubKey)
+	return nil
+
 }
 
 func (r *Runner) add_identity(c *cli.Context) error {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/ecdsa"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"os"
@@ -77,6 +78,13 @@ func GetProtectedCommand(runner *Runner) *cli.Command {
 								EnvVars:  []string{getFlagEnvByFlagName(CliAddIdentityName)},
 								Usage:    "Name of identity",
 								Required: true,
+							},
+							&cli.StringFlag{
+								Name:     CliAddIdentityPublicKey,
+								EnvVars:  []string{getFlagEnvByFlagName(CliAddIdentityPublicKey)},
+								Usage:    "If set, no new key pair will created, it will use this public key as identity base",
+								Value:    "",
+								Required: false,
 							},
 							&cli.StringSliceFlag{
 								Name:    CliAddIdentityRights,
@@ -519,49 +527,76 @@ func (r *ProtectedRunner) UpdateIdentity(c *cli.Context) error {
 func (r *ProtectedRunner) AddIdentity(c *cli.Context) error {
 	rights := c.StringSlice(CliAddIdentityRights)
 	name := c.String(CliAddIdentityName)
+	b64pubKey := c.String(CliAddIdentityPublicKey)
+
 	rightInputs, err := getRightInputs(rights)
 	if err != nil {
 		return err
 	}
-
-	res, err := r.api.CreateIdentity(name, rightInputs)
-	if err != nil {
-		return err
-	}
-
-	values, err := r.api.GetAllRelatedValues(res.IdentityId)
-	if err != nil {
-		return err
-	}
-	for _, v := range values {
-		err := r.api.SyncValue(v.Id)
+	if b64pubKey == "" {
+		// create a new KeyPair
+		res, err := r.api.CreateIdentity(name, rightInputs)
 		if err != nil {
 			return err
 		}
+		values, err := r.api.GetAllRelatedValues(res.IdentityId)
+		if err != nil {
+			return err
+		}
+		for _, v := range values {
+			err := r.api.SyncValue(v.Id)
+			if err != nil {
+				return err
+			}
+		}
+
+		vaultName, err := r.runner.fileHandler.SelectedVault()
+		if err != nil {
+			return err
+		}
+		b64PubKey, err := helper.GetB64FromPublicKey(res.PublicKey)
+		if err != nil {
+			return err
+		}
+		b64PrivKey, err := helper.GetB64FromPrivateKey(res.PrivateKey)
+		if err != nil {
+			return err
+		}
+
+		err = errors.Join(r.runner.fileHandler.SaveTextToFile(fmt.Sprintf("%s/identity/%s/key.pub", vaultName, name), b64PubKey), err)
+		err = errors.Join(r.runner.fileHandler.SaveTextToFile(fmt.Sprintf("%s/identity/%s/key", vaultName, name), b64PrivKey), err)
+		err = errors.Join(r.runner.fileHandler.SaveTextToFile(fmt.Sprintf("%s/identity/%s/id", vaultName, name), res.IdentityId), err)
+		if err != nil {
+			return err
+		}
+		fmt.Print("Identity was created \n")
+		fmt.Printf("Identity information was saved at %s\n", path.Join(c.String(CliSaveFilePath), vaultName, "identity", name))
+		return nil
+	} else {
+
+		// add identity by given public key
+		pubKey, err := GetPublicKeyFromB64String(b64pubKey)
+		if err != nil {
+			return err
+		}
+
+		_, err = r.api.AddIdentity(name, pubKey, rightInputs)
+		if err != nil {
+			return err
+		}
+		fmt.Print("Identity was created\nNo Information will be saved locally...")
+		return nil
 	}
 
-	vaultName, err := r.runner.fileHandler.SelectedVault()
+}
+
+func GetPublicKeyFromB64String(key string) (*ecdsa.PublicKey, error) {
+	publicKeyPem, err := base64.StdEncoding.DecodeString(key)
 	if err != nil {
-		return err
-	}
-	b64PubKey, err := helper.GetB64FromPublicKey(res.PublicKey)
-	if err != nil {
-		return err
-	}
-	b64PrivKey, err := helper.GetB64FromPrivateKey(res.PrivateKey)
-	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = errors.Join(r.runner.fileHandler.SaveTextToFile(fmt.Sprintf("%s/identity/%s/key.pub", vaultName, name), b64PubKey), err)
-	err = errors.Join(r.runner.fileHandler.SaveTextToFile(fmt.Sprintf("%s/identity/%s/key", vaultName, name), b64PrivKey), err)
-	err = errors.Join(r.runner.fileHandler.SaveTextToFile(fmt.Sprintf("%s/identity/%s/id", vaultName, name), res.IdentityId), err)
-	if err != nil {
-		return err
-	}
-	fmt.Print("Identity was created \n")
-	fmt.Printf("Identity information was saved at %s\n", path.Join(c.String(CliSaveFilePath), vaultName, "identity", name))
-	return nil
+	return helper.DecodePublicKey(string(publicKeyPem))
 }
 
 func (r *ProtectedRunner) GetIdentity(c *cli.Context) error {
