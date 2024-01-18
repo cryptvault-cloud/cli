@@ -43,6 +43,34 @@ signs:
       - "${signature}"
       - "--detach-sign"
       - "${artifact}"
+
+dockers:
+  - image_templates:
+    - "ghcr.io/cryptvault-cloud/vault-cli:{{ .Version }}-amd64"
+    - "ghcr.io/cryptvault-cloud/vault-cli:latest-amd64"
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/amd64"
+    goarch: amd64
+  - image_templates:
+    - "ghcr.io/cryptvault-cloud/vault-cli:{{ .Version }}-arm64"
+    - "ghcr.io/cryptvault-cloud/vault-cli:latest-arm64"
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/arm64"
+    goarch: arm64
+docker_manifests:
+  - name_template: "ghcr.io/cryptvault-cloud/vault-cli:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/cryptvault-cloud/vault-cli:{{ .Version }}-amd64"
+      - "ghcr.io/cryptvault-cloud/vault-cli:{{ .Version }}-arm64"
+  - name_template: "ghcr.iocryptvault-cloud/vault-cli:latest"
+    image_templates:
+      - "ghcr.io/cryptvault-cloud/vault-cli:latest-amd64"
+      - "ghcr.io/cryptvault-cloud/vault-cli:latest-arm64"
+
 release:
 changelog:
   skip: true
