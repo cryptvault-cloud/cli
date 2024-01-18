@@ -35,10 +35,8 @@ var AllValueType = []ValueType{
 
 var ValuePatternRegex *regexp.Regexp
 
-const ValuePatternRegexStr = `^\((?P<directions>(r|w|d)+)\)(?P<target>(VALUES|IDENTITY|SYSTEM))(?P<pattern>(\.([\w\-]+|[>\*]{1}))+)$`
-
 func init() {
-	ValuePatternRegex = regexp.MustCompile(ValuePatternRegexStr)
+	ValuePatternRegex = regexp.MustCompile(helper.ValuePatternRegexStr)
 }
 
 func GetProtectedCommand(runner *Runner) *cli.Command {
@@ -94,7 +92,7 @@ func GetProtectedCommand(runner *Runner) *cli.Command {
 									var err error = nil
 									for _, one := range s {
 										if !ValuePatternRegex.Match([]byte(one)) {
-											err = errors.Join(fmt.Errorf("Have to match right string pattern: %s", ValuePatternRegexStr))
+											err = errors.Join(fmt.Errorf("Have to match right string pattern: %s", helper.ValuePatternRegexStr))
 										}
 									}
 									return err
@@ -231,7 +229,7 @@ func GetProtectedCommand(runner *Runner) *cli.Command {
 									var err error = nil
 									for _, one := range s {
 										if !ValuePatternRegex.Match([]byte(one)) {
-											err = errors.Join(fmt.Errorf("Have to match right string pattern: %s", ValuePatternRegexStr))
+											err = errors.Join(fmt.Errorf("Have to match right string pattern: %s", helper.ValuePatternRegexStr))
 										}
 									}
 									return err
@@ -246,7 +244,7 @@ func GetProtectedCommand(runner *Runner) *cli.Command {
 									var err error = nil
 									for _, one := range s {
 										if !ValuePatternRegex.Match([]byte(one)) {
-											err = errors.Join(fmt.Errorf("Have to match right string pattern: %s", ValuePatternRegexStr))
+											err = errors.Join(fmt.Errorf("Have to match right string pattern: %s", helper.ValuePatternRegexStr))
 										}
 									}
 									return err
@@ -337,6 +335,7 @@ func (r *ProtectedRunner) Before(c *cli.Context) error {
 	return nil
 }
 func (r *ProtectedRunner) ListAllIdentities(c *cli.Context) error {
+
 	identityResult, err := r.api.GetAllIdentities()
 	if err != nil {
 		return err
@@ -412,7 +411,7 @@ func getRightInputs(rights []string) ([]*client.RightInput, error) {
 	for _, v := range rights {
 		tmp, err := client.GetRightDescriptionByString(v)
 		if err != nil {
-			errs = errors.Join(errs, fmt.Errorf("error by right %s :%s", v, err.Error()))
+			errs = errors.Join(errs, fmt.Errorf("error by right %s :%w", v, err))
 			continue
 		}
 		for _, tmpV := range tmp {

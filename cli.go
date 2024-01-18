@@ -9,6 +9,8 @@ import (
 	"path"
 	"strings"
 
+	_ "embed"
+
 	client "github.com/cryptvault-cloud/api"
 	"github.com/cryptvault-cloud/helper"
 	"github.com/cryptvault-cloud/vault-cli/logger"
@@ -54,6 +56,9 @@ const (
 	App = "VAULT_CLI"
 )
 
+//go:embed VERSION.txt
+var version string
+
 func getFlagEnvByFlagName(flagName string) string {
 	return fmt.Sprintf("%s_%s", App, strings.ToUpper(flagName))
 }
@@ -63,7 +68,8 @@ func main() {
 	runner := Runner{}
 
 	app := &cli.App{
-		Usage: "vault-cli",
+		Usage:   "vault-cli",
+		Version: version,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    CliLogLevel,
