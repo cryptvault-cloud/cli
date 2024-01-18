@@ -28,8 +28,8 @@ jobs:
           cache: true
       - name: Write Versionfile
         run: |
-          touch VERSION.txt
           echo $GITHUB_REF_NAME > VERSION.txt
+          cat VERSION.txt
       - run: go mod download
       - run: go build -v .
       - name: Run linters
@@ -53,8 +53,8 @@ jobs:
           cache: true
       - name: Write Versionfile
         run: |
-          touch VERSION.txt
           echo $GITHUB_REF_NAME > VERSION.txt
+          cat VERSION.txt
       - run: go mod download
       - env:
           TF_ACC: "1"
