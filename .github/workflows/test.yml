@@ -26,6 +26,10 @@ jobs:
         with:
           go-version-file: "go.mod"
           cache: true
+      - name: Write Versionfile
+        run: |
+          touch VERSION.txt
+          echo $GITHUB_REF_NAME > VERSION.txt
       - run: go mod download
       - run: go build -v .
       - name: Run linters
