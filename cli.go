@@ -56,16 +56,11 @@ const (
 	App = "VAULT_CLI"
 )
 
-var (
-	version = "dev"
-	commit  = "none"
-)
-
 func getFlagEnvByFlagName(flagName string) string {
 	return fmt.Sprintf("%s_%s", App, strings.ToUpper(flagName))
 }
 
-func main() {
+func cliRunner() {
 
 	runner := Runner{}
 
