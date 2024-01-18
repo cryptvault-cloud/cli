@@ -66,7 +66,7 @@ docker_manifests:
     image_templates:
       - "ghcr.io/cryptvault-cloud/vault-cli:{{ .Version }}-amd64"
       - "ghcr.io/cryptvault-cloud/vault-cli:{{ .Version }}-arm64"
-  - name_template: "ghcr.iocryptvault-cloud/vault-cli:latest"
+  - name_template: "ghcr.io/cryptvault-cloud/vault-cli:latest"
     image_templates:
       - "ghcr.io/cryptvault-cloud/vault-cli:latest-amd64"
       - "ghcr.io/cryptvault-cloud/vault-cli:latest-arm64"
