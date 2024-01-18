@@ -56,8 +56,10 @@ const (
 	App = "VAULT_CLI"
 )
 
-//go:embed VERSION.txt
-var version string
+var (
+	version = "dev"
+	commit  = "none"
+)
 
 func getFlagEnvByFlagName(flagName string) string {
 	return fmt.Sprintf("%s_%s", App, strings.ToUpper(flagName))
@@ -69,7 +71,7 @@ func main() {
 
 	app := &cli.App{
 		Usage:   "vault-cli",
-		Version: version,
+		Version: fmt.Sprintf("%s [%s]", version, commit),
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    CliLogLevel,

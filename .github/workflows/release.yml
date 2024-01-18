@@ -30,10 +30,6 @@ jobs:
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
-      - name: Write Versionfile
-        run: |
-          echo $GITHUB_REF_NAME > VERSION.txt
-          cat VERSION.txt
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@3fa32b8bb5620a2c1afe798654bbad59f9da4906 # v4.4.0
         with:

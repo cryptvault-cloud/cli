@@ -26,13 +26,8 @@ jobs:
         with:
           go-version-file: "go.mod"
           cache: true
-      - name: Write Versionfile
-        run: |
-          echo $GITHUB_REF_NAME > VERSION.txt
       - run: go mod download
-      - run: |
-          go build -v .
-          cat VERSION.txt
+      - run: go build -v .
       - name: Run linters
         uses: golangci/golangci-lint-action@639cd343e1d3b897ff35927a75193d57cfcba299 # v3.6.0
         with:
@@ -52,10 +47,6 @@ jobs:
         with:
           go-version-file: "go.mod"
           cache: true
-      - name: Write Versionfile
-        run: |
-          echo $GITHUB_REF_NAME > VERSION.txt
-          cat VERSION.txt
       - run: go mod download
       - env:
           TF_ACC: "1"
