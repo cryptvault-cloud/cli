@@ -77,6 +77,15 @@ OPTIONS:
 go install github.com/cryptvault-cloud/vault-cli@latest
 ```
 
+### With Docker
+You can also use the supplied docker image.
+But make sure to mount your destination folder to /work
+
+```sh
+docker run -v .:/work ghcr.io/cryptvault-cloud/vault-cli:latest --help
+```
+
+
 # Over download
 Go to the release and download the binary you need for your OS
 
