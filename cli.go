@@ -231,7 +231,7 @@ func cliRunner() {
 }
 
 type Runner struct {
-	api         client.Api
+	api         client.ApiHandler
 	fileHandler FileHandling
 }
 

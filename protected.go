@@ -16,7 +16,7 @@ import (
 
 type ProtectedRunner struct {
 	runner     *Runner
-	api        *client.ProtectedApi
+	api        client.ProtectedApiHandler
 	privateKey *ecdsa.PrivateKey
 	vaultId    *string
 }
