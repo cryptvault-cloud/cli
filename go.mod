@@ -6,7 +6,7 @@ toolchain go1.22.1
 
 require (
 	github.com/cryptvault-cloud/api v0.2.0
-	github.com/cryptvault-cloud/helper v0.1.0
+	github.com/cryptvault-cloud/helper v0.1.2
 	github.com/urfave/cli/v2 v2.27.1
 	github.com/vektah/gqlparser/v2 v2.5.11
 	go.uber.org/zap v1.26.0
