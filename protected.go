@@ -12,6 +12,8 @@ import (
 	client "github.com/cryptvault-cloud/api"
 	"github.com/cryptvault-cloud/helper"
 	"github.com/urfave/cli/v2"
+	qrcode "github.com/yeqown/go-qrcode/v2"
+	"github.com/yeqown/go-qrcode/writer/terminal"
 )
 
 type ProtectedRunner struct {
@@ -123,6 +125,23 @@ func GetProtectedCommand(runner *Runner) *cli.Command {
 							},
 						},
 						Action: pRunner.AddValue,
+					},
+				},
+			},
+			{
+				Name:  "print",
+				Usage: "Print to cli",
+				Subcommands: []*cli.Command{
+					{
+						Name:   "creds",
+						Action: pRunner.PrintCerts,
+						Flags: []cli.Flag{
+							&cli.BoolFlag{
+								Name:  CliPrintCertsShowQrCode,
+								Usage: "to print as Qr-Code",
+								Value: false,
+							},
+						},
 					},
 				},
 			},
@@ -586,6 +605,31 @@ func (r *ProtectedRunner) AddIdentity(c *cli.Context) error {
 		return nil
 	}
 
+}
+func (r *ProtectedRunner) PrintCerts(c *cli.Context) error {
+	key, err := helper.EncodePrivateKey(r.privateKey)
+	if err != nil {
+		return err
+	}
+	if c.Bool(CliPrintCertsShowQrCode) {
+		code, err := qrcode.NewWith(key, qrcode.WithErrorCorrectionLevel(qrcode.ErrorCorrectionLow))
+		if err != nil {
+			return err
+		}
+		w := terminal.New()
+		err = code.Save(w)
+		if err != nil {
+			return err
+		}
+
+		// obj := qrcodeTerminal.New()
+
+		// obj.Get(key).Print()
+	} else {
+		fmt.Println(key)
+	}
+
+	return nil
 }
 
 func (r *ProtectedRunner) GetIdentity(c *cli.Context) error {

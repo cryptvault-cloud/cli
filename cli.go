@@ -41,6 +41,7 @@ const (
 	CliUpdateIdentityRightsRemove = "rights-remove"
 
 	CliGetIdentityId              = "id"
+	CliPrintCertsShowQrCode       = "qrcode"
 	CliGetValueName               = "name"
 	CliAddValuePassframe          = "passframe"
 	CliUpdateValuePassframe       = "passframe"
