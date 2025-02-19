@@ -537,15 +537,9 @@ func (r *ProtectedRunner) AddIdentity(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		values, err := r.api.GetAllRelatedValues(res.IdentityId)
+		err = r.api.SyncValues(res.IdentityId)
 		if err != nil {
 			return err
-		}
-		for _, v := range values {
-			err := r.api.SyncValue(v.Id)
-			if err != nil {
-				return err
-			}
 		}
 
 		vaultName, err := r.runner.fileHandler.SelectedVault()
